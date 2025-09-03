@@ -102,8 +102,7 @@ async def check_and_send_alerts(bot: Bot, connect_sid: str) -> int:
                 if loss_percentage >= LOSS_LIMIT_WARNING_PERCENT and should_send_alert(club_id, "loss_limit"):
                     message = f"🚨 <b>LOSS LIMIT WARNING</b>\n\n" \
                              f"🏢 <b>Club:</b> {club.f2}\n" \
-                             f"🆔 <b>Club ID:</b> {club.f1}\n" \
-                             f"👤 <b>Owner:</b> {club.f3}\n\n" \
+                             f"🆔 <b>Club ID:</b> {club.f1}\n\n" \
                              f"💰 <b>Current Loss:</b> ${abs(ring_pnl):,.2f}\n" \
                              f"📊 <b>Loss Limit:</b> ${loss_limit:,.2f}\n" \
                              f"📈 <b>Usage:</b> {loss_percentage:.1f}%"
@@ -121,8 +120,7 @@ async def check_and_send_alerts(bot: Bot, connect_sid: str) -> int:
                 if win_percentage >= WIN_LIMIT_WARNING_PERCENT and should_send_alert(club_id, "win_limit"):
                     message = f"🎯 <b>WIN LIMIT WARNING</b>\n\n" \
                              f"🏢 <b>Club:</b> {club.f2}\n" \
-                             f"🆔 <b>Club ID:</b> {club.f1}\n" \
-                             f"👤 <b>Owner:</b> {club.f3}\n\n" \
+                             f"🆔 <b>Club ID:</b> {club.f1}\n\n" \
                              f"💰 <b>Current Win:</b> ${ring_pnl:,.2f}\n" \
                              f"📊 <b>Win Limit:</b> ${win_limit:,.2f}\n" \
                              f"📈 <b>Usage:</b> {win_percentage:.1f}%"
@@ -139,8 +137,7 @@ async def check_and_send_alerts(bot: Bot, connect_sid: str) -> int:
             if total_pnl <= PNL_NEGATIVE_THRESHOLD and should_send_alert(club_id, "negative_pnl"):
                 message = f"📉 <b>SIGNIFICANT LOSS ALERT</b>\n\n" \
                          f"🏢 <b>Club:</b> {club.f2}\n" \
-                         f"🆔 <b>Club ID:</b> {club.f1}\n" \
-                         f"👤 <b>Owner:</b> {club.f3}\n\n" \
+                         f"🆔 <b>Club ID:</b> {club.f1}\n\n" \
                          f"💰 <b>Total P&L:</b> ${total_pnl:,.2f}\n" \
                          f"🎰 <b>Ring Game P&L:</b> ${ring_pnl:,.2f}\n" \
                          f"🏆 <b>Tournament P&L:</b> ${tournament_pnl:,.2f}"
