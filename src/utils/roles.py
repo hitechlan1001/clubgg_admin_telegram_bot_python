@@ -13,7 +13,6 @@ class UserRole(TypedDict, total=False):
 user_roles: List[UserRole] = [
     {"userId": 7978542634, "role": "Union Head"},
     {"userId": 846248501, "role": "Union Head"},
-    {"userId": 684211566, "role": "Union Head"},
     {"userId": 326695362, "role": "Union Head"},
     {"userId": 7978542634, "role": "Region Head", "clubs": [250793, 102, 103]},
     {"userId": 7978542634, "role": "Club Owner", "clubs": [250793]},

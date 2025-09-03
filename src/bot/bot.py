@@ -10,6 +10,7 @@ from src.config import TELEGRAM_BOT_TOKEN
 from src.bot.commands import register_all_commands
 from src.bot.commands_list import commands
 from src.library.login import login_and_get_sid  # may be sync or async
+from src.library.alert_monitor import start_alert_monitoring
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -83,6 +84,9 @@ async def main():
 
     # background refresher (with initial delay)
     refresher_task = asyncio.create_task(sid_refresher(app, interval_seconds=50 * 60))
+    
+    # start alert monitoring
+    alert_task = asyncio.create_task(start_alert_monitoring(app.bot, app))
 
     try:
         await app.initialize()
@@ -105,7 +109,14 @@ async def main():
         raise
     finally:
         logger.info("🔄 Shutting down bot...")
+        alert_task.cancel()
         refresher_task.cancel()
+        try:
+            await alert_task
+        except asyncio.CancelledError:
+            pass
+        except Exception as e:
+            logger.warning("Error cancelling alert task: %s", e)
         try:
             await refresher_task
         except asyncio.CancelledError:
