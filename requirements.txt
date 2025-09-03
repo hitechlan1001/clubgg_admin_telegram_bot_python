@@ -1,0 +1,12 @@
+# Core bot dependencies
+python-telegram-bot[job-queue]>=20,<22
+requests>=2.31.0,<3
+python-dotenv>=1,<2
+
+# Gmail API stack (for MFA functionality)
+google-auth>=2.23.4,<3
+google-auth-oauthlib>=1.1.0,<2
+google-auth-httplib2>=0.1.1,<1
+google-api-python-client>=2.108.0,<3
+
+
