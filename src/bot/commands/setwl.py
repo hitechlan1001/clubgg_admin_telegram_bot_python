@@ -3,32 +3,40 @@ from telegram.ext import ContextTypes, CommandHandler
 
 from src.utils.parse import parse_args_safe, clean_id
 from src.utils.can_manage_club import can_manage_club
-from src.utils.club_map import resolve_club_id
+
 from src.library.get_club_limit import get_club_limit
 from src.library.set_limit import set_limit
 
 
 async def _setwl(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     try:
+                
+        chat_id = update.effective_chat.id
+        
+        # Auto-detect club_id from chat context using PM's method
+        try:
+            from src.bot.bot import get_chat_club_id, map_club_id
+            club_id = get_chat_club_id(chat_id, context)
+            backend_id = await map_club_id(club_id, context)
+        except ValueError as e:
+            await update.message.reply_text(f"❌ {e}")
+            return
+        
+        # Parse amount from command
         text = update.message.text if update.message and update.message.text else ""
-        args = parse_args_safe(text, 2)
+        args = parse_args_safe(text, 1)
         if not args:
-            await update.message.reply_text("Usage: /setwl <clubId> <amount>")
+            await update.message.reply_text(f"Usage: /setwl <amount>")
             return
 
-        club_id_str = clean_id(args[0])
-        amount_str = args[1].replace(",", "")
-
-        if not club_id_str.isdigit():
-            await update.message.reply_text("❌ Invalid clubId.")
-            return
+        amount_str = args[0].replace(",", "").strip()
         if not amount_str.lstrip("-").isdigit():
             await update.message.reply_text("❌ Invalid amount.")
             return
 
-        backend_id = resolve_club_id(club_id_str)
         club_id_num = int(backend_id)
         amount = int(amount_str)
+
 
         # Role + scope check
         check = can_manage_club(update, "setwl", club_id_num)
@@ -43,7 +51,7 @@ async def _setwl(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
             return
 
         # Fetch current limits
-        current = await get_club_limit(backend_id, sid)
+        current = await get_club_limit(str(backend_id), sid)
         if not current or not current.INFO:
             await update.message.reply_text("❌ Failed to fetch current limits ")
             return
@@ -53,7 +61,7 @@ async def _setwl(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         prev_loss = int(info.loss or 0)
 
         # Update: set win to amount, keep loss the same
-        res = await set_limit(sid, backend_id, amount, prev_loss, 1)
+        res = await set_limit(sid, str(backend_id), amount, prev_loss, 1)
         if not res:
             await update.message.reply_text("❌ Failed to update limits.")
             return
@@ -61,7 +69,7 @@ async def _setwl(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         msg = (
             "✅ *Weekly Win Limit Updated Successfully*\n\n"
             "🏛️ *Club Information*\n"
-            f"🔑 Club ID: `{club_id_str}`\n"
+            f"🔑 Club ID: `{club_id}`\n"
             f"📛 Club Name: *{info.nm}*\n\n"
             "📊 *Previous Limits:*\n"
             f"• 🟢 Weekly Win Limit: *{prev_win}*\n"

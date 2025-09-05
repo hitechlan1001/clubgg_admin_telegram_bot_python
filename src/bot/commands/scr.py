@@ -3,29 +3,36 @@ from telegram.ext import ContextTypes, CommandHandler
 
 from src.utils.parse import parse_args_safe, clean_id
 from src.utils.can_manage_club import can_manage_club
-from src.utils.club_map import resolve_club_id
+
 from src.library.send_credit import send_credit
 
 
 async def _scr(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     try:
+        
+        chat_id = update.effective_chat.id
+        
+        # Auto-detect club_id from chat context using PM's method
+        try:
+            from src.bot.bot import get_chat_club_id, map_club_id
+            club_id = get_chat_club_id(chat_id, context)
+            backend_id = await map_club_id(club_id, context)
+        except ValueError as e:
+            await update.message.reply_text(f"❌ {e}")
+            return
+        
+        # Parse amount from command
         text = update.message.text if update.message and update.message.text else ""
-        args = parse_args_safe(text, 2)
+        args = parse_args_safe(text, 1)
         if not args:
-            await update.message.reply_text("Usage: /scr <clubId> <amount>")
+            await update.message.reply_text("Usage: /scr <amount>")
             return
 
-        club_id_str = clean_id(args[0])
-        amount_str = args[1].replace(",", "").strip()
-
-        if not club_id_str.isdigit():
-            await update.message.reply_text("❌ Invalid clubId.")
-            return
+        amount_str = args[0].replace(",", "").strip()
         if not amount_str.isdigit():
             await update.message.reply_text("❌ Invalid amount.")
             return
 
-        backend_id = resolve_club_id(club_id_str)
         club_id_num = int(backend_id)
         amount = int(amount_str)
 
@@ -42,7 +49,7 @@ async def _scr(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
             return
 
         # Call API
-        res = await send_credit(sid, backend_id, amount)
+        res = await send_credit(sid, str(backend_id), amount)
         if not res:
             await update.message.reply_text("❌ Failed to send credits (no response)")
             return
@@ -57,7 +64,7 @@ async def _scr(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         msg = (
             "✅ *Credits Sent Successfully*\n\n"
             "🏛️ *Club Information*\n"
-            f"🔑 Club ID : `{club_id_str}`\n"
+            f"🔑 Club ID : `{club_id}`\n"
             "💳 *Transaction*\n"
             f"• Amount: *{amount}*\n"
         )

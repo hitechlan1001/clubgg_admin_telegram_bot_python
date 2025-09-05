@@ -1,5 +1,4 @@
 # src/library/login.py
-import os
 import json
 import time
 import random
@@ -8,7 +7,7 @@ import asyncio
 from typing import Dict, Optional
 
 import requests
-from dotenv import load_dotenv
+from src.config import CAPSOLVER_API_KEY, UNION_LOGIN_ID, UNION_LOGIN_PWD
 
 # If you implemented the Gmail OTP helper in Python as suggested:
 #   src/gmail/mfa.py -> fetch_clubgg_verification_code(since: datetime, timeout_seconds: int) -> str
@@ -18,20 +17,17 @@ try:
 except Exception:
     fetch_clubgg_verification_code = None  # type: ignore
 
-load_dotenv()
 logger = logging.getLogger(__name__)
 
-# === ENV / CONSTANTS ===
-API_KEY = os.getenv("CAPSOLVER_API_KEY")
+# === CONSTANTS ===
+API_KEY = CAPSOLVER_API_KEY
 SITE_KEY = "6LfGLOwpAAAAAB_yx0Fp06dwDxYIsQ3WD5dSXKbQ"
 PAGE_URL = "https://union.clubgg.com/"
 PAGE_ACTION = "submit"
 
 LOGIN_URL = "https://union.clubgg.com/login_submit"
-LOGIN_ID = os.getenv("UNION_LOGIN_ID")
-LOGIN_PWD = os.getenv("UNION_LOGIN_PWD")
-
-UNION_RECAPTCHA_BACKEND = os.getenv("UNION_RECAPTCHA_BACKEND")
+LOGIN_ID = UNION_LOGIN_ID
+LOGIN_PWD = UNION_LOGIN_PWD
 
 BASE_HEADERS = {
     "Accept": "*/*",
@@ -209,6 +205,15 @@ async def login_and_get_sid() -> str:
                 backoff,
             )
             time.sleep(backoff / 1000.0)
+            continue
+
+        # Check for rate limiting
+        if (step1.get("err") == 0 and 
+            step1.get("data", {}).get("statusCode") == 429 and
+            step1.get("data", {}).get("code") == "RESEND_TERM_LIMITED"):
+            remaining_time = step1.get("data", {}).get("remainingTime", 60)
+            logger.warning(f"Rate limited. Waiting {remaining_time} seconds...")
+            time.sleep(remaining_time)
             continue
 
         # cookies from response (requests parses Set-Cookie)
