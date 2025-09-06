@@ -54,7 +54,14 @@ async def _addwl(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         info = current.INFO
         prev_win = int(info.win or 0)
         prev_loss = int(info.loss or 0)
-        new_win = prev_win + amount
+        
+        # Fix: Handle negative values correctly for addwl (increase win limit)
+        if prev_win < 0:
+            # When negative, "add" means make it MORE negative (subtract)
+            new_win = prev_win - amount
+        else:
+            # When positive, "add" means add to the value
+            new_win = prev_win + amount
 
         # Update limits (win changes, loss stays)
         res = await set_limit(sid, str(backend_id), new_win, prev_loss, 1)

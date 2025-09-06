@@ -58,7 +58,14 @@ async def _subsl(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         info = current.INFO
         prev_win = int(info.win or 0)
         prev_loss = int(info.loss or 0)
-        new_loss = prev_loss - amount
+        
+        # Fix: Handle negative values correctly for subsl (decrease stop limit)
+        if prev_loss < 0:
+            # When negative, "sub" means make it LESS negative (add)
+            new_loss = prev_loss + amount
+        else:
+            # When positive, "sub" means subtract from the value
+            new_loss = prev_loss - amount
 
         # Update: keep win same, reduce loss
         res = await set_limit(sid, str(backend_id), prev_win, new_loss, 1)

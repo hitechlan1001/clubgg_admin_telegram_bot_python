@@ -58,7 +58,14 @@ async def _subwl(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         info = current.INFO
         prev_win = int(info.win or 0)
         prev_loss = int(info.loss or 0)
-        new_win = prev_win - amount
+        
+        # Fix: Handle negative values correctly for subwl (decrease win limit)
+        if prev_win < 0:
+            # When negative, "sub" means make it LESS negative (add)
+            new_win = prev_win + amount
+        else:
+            # When positive, "sub" means subtract from the value
+            new_win = prev_win - amount
 
         # Update win limit, keep loss the same
         res = await set_limit(sid, str(backend_id), new_win, prev_loss, 1)

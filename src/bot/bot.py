@@ -76,7 +76,7 @@ async def ensure_sid(app):
 async def sid_refresher(application):
     while True:
         try:
-            await asyncio.sleep(300)
+            await asyncio.sleep(3000)  # 50 minutes
             
             sid = await login_and_get_sid()
             application.bot_data["sid"] = sid

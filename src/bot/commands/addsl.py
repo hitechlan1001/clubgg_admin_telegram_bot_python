@@ -59,7 +59,14 @@ async def _addsl(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         info = current.INFO
         prev_win = int(info.win or 0)
         prev_loss = int(info.loss or 0)
-        new_loss = prev_loss + amount
+        
+        # Fix: Handle negative values correctly for addsl (increase stop limit)
+        if prev_loss < 0:
+            # When negative, "add" means make it MORE negative (subtract)
+            new_loss = prev_loss - amount
+        else:
+            # When positive, "add" means add to the value
+            new_loss = prev_loss + amount
 
         # Update: keep win same, bump loss
         res = await set_limit(sid, str(backend_id), prev_win, new_loss, 1)
