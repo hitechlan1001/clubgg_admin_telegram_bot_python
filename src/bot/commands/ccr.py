@@ -9,35 +9,64 @@ from src.library.claim_credit import claim_credit
 
 async def _ccr(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     try:
-        
         chat_id = update.effective_chat.id
         
-        # Auto-detect club_id from chat context using PM's method
+        # Parse command arguments
+        text = update.message.text if update.message and update.message.text else ""
+        args = parse_args_safe(text, 2)
+        
+        if not args:
+            await update.message.reply_text("Usage: /ccr <club_id> <amount>\nExample: /ccr 492536 1000")
+            return
+        
+        # Check if club ID is provided as first argument (only allowed in direct messages)
+        if len(args) >= 2:
+            # Only allow club ID parameter in direct messages (private chats)
+            if update.effective_chat.type != "private":
+                await update.message.reply_text("❌ Club ID parameter is only available in direct messages with the bot.")
+                return
+            
+            try:
+                club_id = int(args[0])
+            except ValueError:
+                await update.message.reply_text("❌ Invalid club ID. Please provide a valid number.")
+                return
+            
+            # Parse amount (second argument)
+            amount_str = args[1].replace(",", "").strip()
+            if not amount_str.isdigit():
+                await update.message.reply_text("❌ Invalid amount.")
+                return
+            amount = int(amount_str)
+        else:
+            # Auto-detect club_id from chat context and use first argument as amount
+            try:
+                from src.bot.bot import get_chat_club_id
+                club_id = get_chat_club_id(chat_id, context)
+            except ValueError as e:
+                if update.effective_chat.type == "private":
+                    await update.message.reply_text(f"❌ {e}\n\n💡 You can also specify a club ID: /ccr <club_id> <amount>")
+                else:
+                    await update.message.reply_text(f"❌ {e}")
+                return
+            
+            # Parse amount (first argument)
+            amount_str = args[0].replace(",", "").strip()
+            if not amount_str.isdigit():
+                await update.message.reply_text("❌ Invalid amount.")
+                return
+            amount = int(amount_str)
+        
+        # Map display club ID to backend ID
         try:
-            from src.bot.bot import get_chat_club_id, map_club_id
-            club_id = get_chat_club_id(chat_id, context)
+            from src.bot.bot import map_club_id
             backend_id = await map_club_id(club_id, context)
         except ValueError as e:
             await update.message.reply_text(f"❌ {e}")
             return
-        
-        # Parse amount from command
-        text = update.message.text if update.message and update.message.text else ""
-        args = parse_args_safe(text, 1)
-        if not args:
-            await update.message.reply_text("Usage: /ccr <amount>")
-            return
 
-        amount_str = args[0].replace(",", "").strip()
-        if not amount_str.isdigit():
-            await update.message.reply_text("❌ Invalid amount.")
-            return
-
-        club_id_num = int(backend_id)
-        amount = int(amount_str)
-
-        # Role + scope
-        check = can_manage_club(update, "ccr", club_id_num)
+        # Role + scope - Check permissions using display club ID, not backend ID
+        check = can_manage_club(update, "ccr", int(club_id))
         if not check["allowed"]:
             await update.message.reply_text(f"❌ {check.get('reason', 'Not allowed')}")
             return

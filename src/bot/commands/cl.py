@@ -10,17 +10,44 @@ async def _cl(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     try:
         chat_id = update.effective_chat.id
         
+        # Parse command arguments
+        text = update.message.text if update.message and update.message.text else ""
+        args = parse_args_safe(text, 1)
+        
+        # Check if club ID is provided as argument (only allowed in direct messages)
+        if args:
+            # Only allow club ID parameter in direct messages (private chats)
+            if update.effective_chat.type != "private":
+                await update.message.reply_text("❌ Club ID parameter is only available in direct messages with the bot.")
+                return
+            
+            try:
+                club_id = int(args[0])
+            except ValueError:
+                await update.message.reply_text("❌ Invalid club ID. Please provide a valid number.")
+                return
+        else:
+            # Auto-detect club_id from chat context
+            try:
+                from src.bot.bot import get_chat_club_id
+                club_id = get_chat_club_id(chat_id, context)
+            except ValueError as e:
+                if update.effective_chat.type == "private":
+                    await update.message.reply_text(f"❌ {e}\n\n💡 You can also specify a club ID: /cl <club_id>")
+                else:
+                    await update.message.reply_text(f"❌ {e}")
+                return
+        
+        # Map display club ID to backend ID
         try:
-            from src.bot.bot import get_chat_club_id, map_club_id
-            club_id = get_chat_club_id(chat_id, context)
+            from src.bot.bot import map_club_id
             backend_id = await map_club_id(club_id, context)
         except ValueError as e:
             await update.message.reply_text(f"❌ {e}")
             return
         
-        club_id_num = int(backend_id)
-
-        check = can_manage_club(update, "cl", club_id_num)
+        # Check permissions using display club ID, not backend ID
+        check = can_manage_club(update, "cl", int(club_id))
         if not check["allowed"]:
             await update.message.reply_text(f"❌ {check.get('reason', 'Not allowed')}")
             return
